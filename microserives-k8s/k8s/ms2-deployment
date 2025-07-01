@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms2
+  namespace: my-app
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: ms2 } }
+  template:
+    metadata: { labels: { app: ms2 } }
+    spec:
+      containers:
+      - name: ms2
+        image: <AWS_ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/ms2:latest
+        ports: [{ containerPort: 3001 }]
