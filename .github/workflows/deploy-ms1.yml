@@ -17,6 +17,6 @@ jobs:
 
       - name: Build Docker Image (MS1)
         run: |
-          cd microservice-1
+          cd microservices-k8s/microservice-1
           docker build -t ms1:latest .
 
