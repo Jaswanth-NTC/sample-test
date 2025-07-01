@@ -2,7 +2,8 @@ name: Build Docker Image for MS1
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
@@ -12,10 +13,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Show directory structure for debugging
+        run: |
+          echo "PWD = $(pwd)"
+          ls -R
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker Image (MS1)
+      - name: Build Docker Image from microserives-k8s/microservice-1
         run: |
           docker build \
             -t my-microservice:latest \
