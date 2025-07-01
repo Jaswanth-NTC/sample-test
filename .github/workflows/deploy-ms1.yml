@@ -21,9 +21,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker Image from microserives-k8s/microservice-1
+      - name: Build Docker Image (MS1)
         run: |
-          docker build \
-            -t my-microservice:latest \
-            -f microserives-k8s/microservice-1/Dockerfile \
-            microserives-k8s/microservice-1
+          cd microservice-1
+          docker build -t ms1:latest .
