@@ -1,0 +1,22 @@
+name: Build Docker Image for MS1
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image (MS1)
+        run: |
+          cd microserives-k8s/microservice-1/
+          docker build -t ms1:latest .
+
