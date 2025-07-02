@@ -35,6 +35,9 @@ jobs:
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+      - name: Print kubeconfig for debugging
+        run: cat ~/.kube/config
+
 
       - name: Verify Kubernetes access
         run: |
