@@ -1,4 +1,4 @@
-name: Build and Push MS1 Docker Image to ECR
+name: Deploy MS1 to EKS
 
 on:
   push:
@@ -6,16 +6,16 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
 
     env:
       AWS_REGION: us-east-1
-      ECR_URI: 767828744704.dkr.ecr.us-east-1.amazonaws.com/test/eksrepo
-      IMAGE_TAG: latest
+      EKS_CLUSTER_NAME: attractive-dubstep-duck
+      ECR_IMAGE_URI: 767828744704.dkr.ecr.us-east-1.amazonaws.com/test/eksrepo:latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -25,17 +25,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Install kubectl (v1.24.x compatible with EKS 1.33)
+        uses: azure/setup-kubectl@v3
+        with:
+          version: v1.24.0  # Ensure this matches EKS 1.33 compatibility
 
-      - name: Build and Push Docker Image
+      - name: Update kubeconfig
         run: |
-          cd microservice-1
+          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
 
-          # Build the Docker image and tag it with the full ECR URI
-          docker build -t $ECR_URI:$IMAGE_TAG .
-
-          # Push the image to ECR
-          docker push $ECR_URI:$IMAGE_TAG
-
-          echo "✅ Image pushed to ECR: $ECR_URI:$IMAGE_TAG"
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          
+          # Replace image tag in deployment YAML
+          sed -i "s|image: .*|image: $ECR_IMAGE_URI|" k8s/ms1-deployment.yaml
+          
+          kubectl apply -f k8s/ms1-deployment.yaml
+          kubectl apply -f k8s/ms1-service.yaml
