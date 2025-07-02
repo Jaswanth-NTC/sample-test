@@ -24,26 +24,62 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Show AWS identity
-        run: aws sts get-caller-identity
-
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: v1.24.0
 
-      - name: Update kubeconfig for EKS
+      - name: Get EKS Cluster Endpoint and Certificate
+        id: eksinfo
         run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-          echo "--- Kubeconfig ---"
-          cat ~/.kube/config
+          ENDPOINT=$(aws eks describe-cluster \
+            --region $AWS_REGION \
+            --name $EKS_CLUSTER_NAME \
+            --query "cluster.endpoint" \
+            --output text)
 
-      - name: Export AWS credentials (required for kubectl exec plugin)
+          CERT=$(aws eks describe-cluster \
+            --region $AWS_REGION \
+            --name $EKS_CLUSTER_NAME \
+            --query "cluster.certificateAuthority.data" \
+            --output text)
+
+          echo "EKS_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
+          echo "EKS_CA=$CERT" >> $GITHUB_ENV
+
+      - name: Generate Kubeconfig Manually
         run: |
-          echo "Exporting AWS credentials..."
-          export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          export AWS_REGION=${{ env.AWS_REGION }}
+          TOKEN=$(aws eks get-token --region $AWS_REGION --cluster-name $EKS_CLUSTER_NAME --query "status.token" --output text)
 
-          echo "--- Test kubectl access ---"
+          mkdir -p ~/.kube
+
+          cat <<EOF > ~/.kube/config
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - cluster:
+              server: $EKS_ENDPOINT
+              certificate-authority-data: $EKS_CA
+            name: eks
+          contexts:
+          - context:
+              cluster: eks
+              user: eks-user
+            name: eks
+          current-context: eks
+          users:
+          - name: eks-user
+            user:
+              token: $TOKEN
+          EOF
+
+      - name: Verify kubectl access
+        run: |
           kubectl get nodes
+
+      - name: Deploy MS1
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          sed -i "s|image: .*|image: 767828744704.dkr.ecr.us-east-1.amazonaws.com/test/eksrepo:latest|" k8s/ms1-deployment.yaml
+          kubectl apply -f k8s/ms1-deployment.yaml
+          kubectl apply -f k8s/ms1-service.yaml
