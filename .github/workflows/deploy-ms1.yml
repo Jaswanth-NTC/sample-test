@@ -36,6 +36,11 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
 
+      - name: Verify Kubernetes access
+        run: |
+          kubectl config current-context
+          kubectl get nodes
+
       - name: Validate Kubernetes connection
         run: |
           kubectl config current-context
