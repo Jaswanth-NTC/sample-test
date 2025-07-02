@@ -25,21 +25,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install kubectl (v1.24.x compatible with EKS 1.33)
+      - name: Show AWS identity (debug)
+        run: aws sts get-caller-identity
+
+      - name: Install kubectl (v1.24.x for EKS 1.33)
         uses: azure/setup-kubectl@v3
         with:
-          version: v1.24.0  # Ensure this matches EKS 1.33 compatibility
+          version: v1.24.0
 
       - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+        run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
 
-      - name: Deploy to EKS
+      - name: Validate Kubernetes connection
+        run: |
+          kubectl config current-context
+          kubectl get nodes
+
+      - name: Deploy MS1 to EKS
         run: |
           kubectl apply -f k8s/namespace.yaml
-          
+
           # Replace image tag in deployment YAML
           sed -i "s|image: .*|image: $ECR_IMAGE_URI|" k8s/ms1-deployment.yaml
-          
+
           kubectl apply -f k8s/ms1-deployment.yaml
           kubectl apply -f k8s/ms1-service.yaml
