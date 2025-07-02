@@ -46,4 +46,4 @@ jobs:
           kubectl apply -f k8s/namespace.yaml
           sed -i "s|image: .*|image: $ECR_IMAGE_URI|" k8s/ms1-deployment.yaml
           kubectl apply -f k8s/ms1-deployment.yaml
-          kubectl apply -f k8s/ms1-service.yaml
+          kubectl apply -f k8s/ms1-service.yamll
